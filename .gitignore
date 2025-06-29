@@ -1,5 +1,91 @@
+# Ignore build output directories
 bin/
 obj/
-/packages/
-riderModule.iml
-/_ReSharper.Caches/
+
+# Rider (JetBrains) specific files
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Visual Studio/VS Code specific files
+.vscode/
+.vs/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Auto-generated files
+*.pdb
+*.mdb
+*.opendb
+*.Cache
+*.ilk
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.pid
+
+# OS-generated files/macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# OS-generated files/Windows
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# NuGet packages
+*.nupkg
+packages/
+
+# DotNetCore
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Compiled DLL/EXE
+*.dll
+*.exe
+*.so
+*.dylib
+
+# Coverage and Test Results
+*.coverage
+*.coveragexml
+_test_results/
+TestResult/
+
+# Configuration and secrets
+appsettings.json
+appsettings.*.json
+*.config
+*.env
+
+# Logs and Debugger settings
+*.log*
+*.trace
+
+# Backup files
+*.bak
+*.swp
+*.swo
+*.orig
+
+# Generated JSON settings from IDEs
+/.idea/workspace.xml
+/.idea/tasks.xml
+/.idea/dictionaries
+/.idea/vcs.xml
+/.idea/modules.xml
+
+# Rider's logs and cache
+.idea/.Rider2025
+.idea/.Rider/logs

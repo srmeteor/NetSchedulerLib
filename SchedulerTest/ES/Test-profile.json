@@ -1,3 +1,63 @@
 {
-
+  "name": "Test",
+  "description": "Test Profile Description",
+  "events": [
+    {
+      "id": 2,
+      "name": "Every Hour",
+      "description": "Test Profile Description",
+      "type": "AbsoluteEvent",
+      "state": "Enabled",
+      "frequency": "EveryNthHour",
+      "rate": 1,
+      "add-rate": 0,
+      "astro-offset": "",
+      "target-time": "2025-06-29T13:31:00+02:00",
+      "acknowledge": false,
+      "actions": []
+    },
+    {
+      "id": 4,
+      "name": "Every Day Sunrise",
+      "description": "Test Profile Description",
+      "type": "AstronomicalEvent",
+      "state": "Enabled",
+      "frequency": "EveryNthDay",
+      "rate": 1,
+      "add-rate": 0,
+      "astro-offset": "Sunrise:+15",
+      "target-time": "2025-06-30T05:10:27+02:00",
+      "acknowledge": false,
+      "actions": []
+    },
+    {
+      "id": 1,
+      "name": "Every 15 Minutes",
+      "description": "Test Profile Description",
+      "type": "AbsoluteEvent",
+      "state": "Enabled",
+      "frequency": "EveryNthMinute",
+      "rate": 15,
+      "add-rate": 0,
+      "astro-offset": "",
+      "target-time": "2025-06-29T12:52:00+02:00",
+      "acknowledge": false,
+      "actions": []
+    },
+    {
+      "id": 3,
+      "name": "Every Day Sunset",
+      "description": "Test Profile Description",
+      "type": "AstronomicalEvent",
+      "state": "Enabled",
+      "frequency": "EveryNthDay",
+      "rate": 1,
+      "add-rate": 0,
+      "astro-offset": "Sunset:-10",
+      "target-time": "2025-06-29T20:18:14+02:00",
+      "acknowledge": false,
+      "actions": []
+    }
+  ],
+  "last-modified": "2025-06-29T12:38:29+02:00"
 }

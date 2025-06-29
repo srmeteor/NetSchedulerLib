@@ -11,4 +11,11 @@
       <ProjectReference Include="..\NetSchedulerLib\NetSchedulerLib.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <None Remove="ES\Test-profile.json" />
+      <Resource Include="ES\Test-profile.json">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </Resource>
+    </ItemGroup>
+
 </Project>
