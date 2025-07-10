@@ -13,10 +13,15 @@ public interface IEsProfile
     
     bool Changed { get; set; }
     ConcurrentDictionary<string, IEsEvent> Events { get; }
-    bool AddEvent(Models.EsEventCfg esEventCfg);
+    bool AddEvent(Models.EsEventCfg esEventCfg, bool overwrite);
     bool RemoveEvent(string? eventName);
     event Action<IEsEvent> OnProfileEventFired;
     Task SaveAsync();
+    List<IEsEvent> GetEvents();
+    
+    bool EnableAllEvents();
+    bool DisableAllEvents();
+    bool RemoveAllEvents();
     
     void Dispose();
 }

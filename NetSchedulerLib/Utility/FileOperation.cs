@@ -1,12 +1,16 @@
 using System.IO.Compression;
 using System.Text;
+using Serilog;
+
 
 namespace NetSchedulerLib.Utility;
 
-public static class FileOperation
+public class FileOperation
     {
-        private const string LogHeader = "FILE:[FileOperations] ";
-        private static readonly SemaphoreSlim FileSemaphore = new SemaphoreSlim(1, 1); // For file-level operations
+        private static readonly ILogger Logg = LoggerExtensions.GetLoggerFor<FileOperation>("File"); 
+        
+        private static readonly SemaphoreSlim 
+            FileSemaphore = new SemaphoreSlim(1, 1); // For file-level operations
 
         private static readonly SemaphoreSlim
             DirectorySemaphore = new SemaphoreSlim(1, 1); // For directory-level operations
@@ -18,19 +22,19 @@ public static class FileOperation
 
             try
             {
-                Console.WriteLine("Waiting to acquire FileSemaphore for ReadFileAsync.");
+                Logg.Debug("Waiting to acquire FileSemaphore for ReadFileAsync.");
                 await FileSemaphore.WaitAsync();
-                Console.WriteLine("Acquired FileSemaphore for ReadFileAsync.");
+                Logg.Debug("Acquired FileSemaphore for ReadFileAsync.");
 
                 if (string.IsNullOrEmpty(filePath))
                 {
-                    Console.WriteLine("Error: Empty file path.");
+                    Logg.Error("Error: Empty file path.");
                     return string.Empty;
                 }
 
                 if (!File.Exists(filePath))
                 {
-                    Console.WriteLine("Error: File \"{filePath}\" does not exist!");
+                    Logg.Error($"Error: File \"{filePath}\" does not exist!");
                     return string.Empty;
                 }
 
@@ -41,12 +45,12 @@ public static class FileOperation
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Exception in ReadFileAsync: {ex.Message}");
+                Logg.Error($"Exception in ReadFileAsync: {ex.Message}");
             }
             finally
             {
                 FileSemaphore.Release();
-                Console.WriteLine("Released FileSemaphore for ReadFileAsync.");
+                Logg.Debug("Released FileSemaphore for ReadFileAsync.");
             }
 
             return fileData;
@@ -56,11 +60,11 @@ public static class FileOperation
         {
             bool updateSuccess;
 
-            await Task.Run(() => Console.WriteLine($"Updating file: {filePath} . . ."));
+            await Task.Run(() => Logg.Information($"Updating file: {filePath} . . ."));
 
             if (string.IsNullOrEmpty(filePath))
             {
-                Console.WriteLine("Error: Empty file info?!?");
+                Logg.Error("Error: Empty file info?!?");
                 return false;
             }
 
@@ -86,7 +90,7 @@ public static class FileOperation
             catch (Exception e)
             {
                 updateSuccess = false;
-                Console.WriteLine($"Updating file Exception: {e.Message}");
+                Logg.Error($"Updating file Exception: {e.Message}");
             }
             finally
             {
@@ -106,17 +110,17 @@ public static class FileOperation
         {
             if (string.IsNullOrEmpty(sourcePath) || string.IsNullOrEmpty(destPath))
             {
-                Console.WriteLine("Error: Empty Source and/or Destination");
+                Logg.Error("Error: Empty Source and/or Destination");
                 return false;
             }
 
             if (!Directory.Exists(sourcePath))
             {
-                Console.WriteLine("Error: Source Folder doesn't exist!");
+                Logg.Error("Error: Source Folder doesn't exist!");
                 return false;
             }
 
-            Console.WriteLine($"Moving folder: \"{sourcePath}\" => \"{destPath}\" . . .");
+            Logg.Information($"Moving folder: \"{sourcePath}\" => \"{destPath}\" . . .");
 
             await FileSemaphore.WaitAsync();
             try
@@ -128,13 +132,13 @@ public static class FileOperation
 
                 // Use the MoveDirectoryCrossDevice helper for universal moves
                 await Task.Run(() => MoveDirectoryCrossDevice(sourcePath, destPath));
-                Console.WriteLine(
+                Logg.Information(
                     $"Move completed successfully from \"{sourcePath}\" to \"{destPath}\"");
                 return true;
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Moving Folder Exception: {e.Message}");
+                Logg.Error($"Moving Folder Exception: {e.Message}");
                 return false;
             }
             finally
@@ -188,11 +192,11 @@ public static class FileOperation
         {
             if (string.IsNullOrEmpty(sourcePath) || string.IsNullOrEmpty(destPath))
             {
-                Console.WriteLine("Error: Empty Source and/or Destination file path");
+                Logg.Error("Error: Empty Source and/or Destination file path");
                 return false;
             }
 
-            Console.WriteLine(
+            Logg.Information(
                 $"Copy: \"{sourcePath}\" => \"{destPath}\" , OVERWRITE: {overwrite} . . .");
 
             string? directoryPath = Path.GetDirectoryName(destPath);
@@ -203,12 +207,12 @@ public static class FileOperation
                     if (directoryPath != null)
                     {
                         Directory.CreateDirectory(directoryPath);
-                        Console.WriteLine($"Created directory: {directoryPath}");
+                        Logg.Information($"Created directory: {directoryPath}");
                     }
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(
+                    Logg.Error(
                         $"Failed to create directory: {directoryPath}. Exception: {e.Message}");
                     return false;
                 }
@@ -222,23 +226,23 @@ public static class FileOperation
             }
             catch (UnauthorizedAccessException e)
             {
-                Console.WriteLine($"Access to path denied. Exception: {e.Message}");
+                Logg.Error($"Access to path denied. Exception: {e.Message}");
             }
             catch (FileNotFoundException e)
             {
-                Console.WriteLine($"Source file not found. Exception: {e.Message}");
+                Logg.Error($"Source file not found. Exception: {e.Message}");
             }
             catch (DirectoryNotFoundException e)
             {
-                Console.WriteLine($"Destination directory not found. Exception: {e.Message}");
+                Logg.Error($"Destination directory not found. Exception: {e.Message}");
             }
             catch (IOException e)
             {
-                Console.WriteLine($"I/O error. Exception: {e.Message}");
+                Logg.Error($"I/O error. Exception: {e.Message}");
             }
             catch (Exception e)
             {
-                Console.WriteLine($"An unexpected error occurred. Exception: {e.Message}");
+                Logg.Error($"An unexpected error occurred. Exception: {e.Message}");
             }
             finally
             {
@@ -252,11 +256,11 @@ public static class FileOperation
         {
             if (string.IsNullOrEmpty(filePath))
             {
-                Console.WriteLine("Error: Empty file path");
+                Logg.Error("Error: Empty file path");
                 return false;
             }
 
-            Console.WriteLine($"Deleting file: \"{filePath}\" . . .");
+            Logg.Information($"Deleting file: \"{filePath}\" . . .");
 
             await FileSemaphore.WaitAsync();
             try
@@ -266,7 +270,7 @@ public static class FileOperation
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Deleting file \"{filePath}\" Exception: {e.Message}");
+                Logg.Error($"Deleting file \"{filePath}\" Exception: {e.Message}");
                 return false;
             }
             finally
@@ -277,12 +281,12 @@ public static class FileOperation
 
         public static async Task<string[]?> GetFileListAsync(string directoryPath, string searchPattern)
         {
-            Console.WriteLine(
+            Logg.Information(
                 $"Getting files from Folder: \"{directoryPath}\" , Pattern: \"{searchPattern}\" . . .");
 
             if (!Directory.Exists(directoryPath))
             {
-                Console.WriteLine("Error: No Source Directory!");
+                Logg.Error("Error: No Source Directory!");
                 return null;
             }
 
@@ -295,7 +299,7 @@ public static class FileOperation
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Getting files Exception: {e.Message}");
+                Logg.Error($"Getting files Exception: {e.Message}");
                 return null;
             }
             finally
@@ -310,7 +314,7 @@ public static class FileOperation
         public static async Task<bool> FolderCopyAsync(string sourceFolder, string? destFolder,
             bool copySubFolders = true, bool overwrite = true, CancellationToken cancellationToken = default)
         {
-            Console.WriteLine(
+            Logg.Information(
                 $"Copy Folder : \"{sourceFolder}\" , and Subfolders : {copySubFolders}, overwrite: {overwrite}");
 
             // Only protect the setup phase (creating directories, initialization)
@@ -320,7 +324,7 @@ public static class FileOperation
                 var sourceDir = new DirectoryInfo(sourceFolder);
                 if (!sourceDir.Exists)
                 {
-                    Console.WriteLine("Error: No Source Folder!");
+                    Logg.Error("Error: No Source Folder!");
                     return false;
                 }
 
@@ -363,12 +367,12 @@ public static class FileOperation
             }
             catch (OperationCanceledException)
             {
-                Console.WriteLine("Folder Copy Operation Cancelled");
+                Logg.Error("Folder Copy Operation Cancelled");
                 return false;
             }
             catch (Exception e)
             {
-                Console.WriteLine($"FolderCopy Exception: {e.Message}");
+                Logg.Error($"FolderCopy Exception: {e.Message}");
                 return false;
             }
         }
@@ -388,7 +392,7 @@ public static class FileOperation
             {
                 if (string.IsNullOrEmpty(zipFile) || string.IsNullOrEmpty(unzipTo))
                 {
-                    Console.WriteLine("Error: Empty source file path and/or destination folder path.");
+                    Logg.Error("Error: Empty source file path and/or destination folder path.");
                     return false;
                     
                 }
@@ -404,13 +408,13 @@ public static class FileOperation
                     ZipFile.ExtractToDirectory(zipFile, unzipTo, overwriteFiles: overwrite);
                 });
                 
-                Console.WriteLine($" * * * Unzip \"{zipFile}\" to \"{unzipTo}\" => Success",
+                Logg.Information($" * * * Unzip \"{zipFile}\" to \"{unzipTo}\" => Success",
                     true);
                 return true;
             }
             catch (Exception e)
             {
-                Console.WriteLine($"UnzipFile Exception: {e.Message}");
+                Logg.Error($"UnzipFile Exception: {e.Message}");
                 return false;
             }
             finally
@@ -429,13 +433,13 @@ public static class FileOperation
         {
             if (string.IsNullOrEmpty(folderPath) || string.IsNullOrEmpty(zipToFilePath))
             {
-                Console.WriteLine("Error: Empty source folder and/or destination file path.");
+                Logg.Error("Error: Empty source folder and/or destination file path.");
                 return false;
             }
 
             if (!Directory.Exists(folderPath))
             {
-                Console.WriteLine("Error: Source directory does not exist.");
+                Logg.Error("Error: Source directory does not exist.");
                 return false;
             }
 
@@ -452,13 +456,13 @@ public static class FileOperation
                 // Zip the folder.
                 await Task.Run(() =>
                     ZipFile.CreateFromDirectory(folderPath, zipToFilePath, CompressionLevel.Fastest, true));
-                Console.WriteLine(
+                Logg.Information(
                     $"Successfully zipped folder \"{folderPath}\" to \"{zipToFilePath}\".");
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"ZipFolderAsync Exception: {ex.Message}");
+                Logg.Error($"ZipFolderAsync Exception: {ex.Message}");
                 return false;
             }
             finally
@@ -479,13 +483,13 @@ public static class FileOperation
         {
             if (string.IsNullOrEmpty(folderPath) || string.IsNullOrEmpty(zipToFilePath))
             {
-                Console.WriteLine("Error: Empty source folder and/or destination file path.");
+                Logg.Error("Error: Empty source folder and/or destination file path.");
                 return false;
             }
 
             if (!Directory.Exists(folderPath))
             {
-                Console.WriteLine("Error: Source directory does not exist.");
+                Logg.Error("Error: Source directory does not exist.");
                 return false;
             }
 
@@ -525,13 +529,13 @@ public static class FileOperation
                     }
                 });
 
-                Console.WriteLine(
+                Logg.Information(
                     $"Successfully zipped folder \"{folderPath}\" to \"{zipToFilePath}\" excluding extensions: {string.Join(", ", excludeExtensions)}.");
                 return true;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"ZipFolderAsync Exception: {ex.Message}");
+                Logg.Error($"ZipFolderAsync Exception: {ex.Message}");
                 return false;
             }
             finally

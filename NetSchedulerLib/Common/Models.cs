@@ -16,6 +16,8 @@ public static class Models
         [JsonProperty("name")] public string? Name { get; set; }
 
         [JsonProperty("description")] public string? Description { get; set; }
+        
+        [JsonProperty("rec-description")] public string? RecDescription { get; set; }
 
         /// <summary>
         /// astro/time-date
@@ -54,10 +56,27 @@ public static class Models
         public string? AstroOffset { get; set; }
 
         /// <summary>
-        /// next event date
+        /// next event target time in format yyyy-MM-ddTHH:mm:sszzz
         /// </summary>
         [JsonProperty("target-time")]
         public string? TargetTime { get; set; }
+        
+        [JsonProperty("last-fired")]
+        public string? LastFired { get; set; }
+        
+        /// <summary>
+        /// next event target time in format HH:mm
+        /// Old scheduler
+        /// </summary>
+        [JsonProperty("time")]
+        public string? Time { get; set; }
+        
+        /// <summary>
+        /// next event target date in format MM/dd/yyyy
+        /// Old scheduler
+        /// </summary>
+        [JsonProperty("date")]
+        public string? Date { get; set; }
 
 
         [JsonProperty("acknowledge")] public bool Acknowledge { get; set; }
