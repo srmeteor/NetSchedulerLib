@@ -6,6 +6,7 @@ using Serilog;
 using Serilog.Core;
 using Serilog.Events;
 using LoggerExtensions = NetSchedulerLib.Utility.LoggerExtensions;
+using System.Reflection;
 
 // Create individual level switches
 var generalLevelSwitch = new LoggingLevelSwitch(LogEventLevel.Debug);
@@ -29,6 +30,48 @@ var logg = LoggerExtensions.GetLoggerFor<Program>();
 try
 {
     logg.Information("Application Starting Up!");
+    
+    logg.Information("Checking for existing profiles...");
+    var existingProfiles = Directory.GetFiles("ES/", "*Profile.json");
+    
+    // Check if there are existing profiles
+    if (existingProfiles.Length == 0)
+    {
+        logg.Information("No existing profiles found. Creating Test-Profile...");
+
+        // Ensure ES directory exists in the working folder.
+        var workingFolderPath = Path.Combine(Directory.GetCurrentDirectory(), "ES");
+        if (!Directory.Exists(workingFolderPath))
+        {
+            Directory.CreateDirectory(workingFolderPath);
+        }
+
+        // Get the content of Test-Profile.json from the embedded resource.
+        var assembly = Assembly.GetExecutingAssembly();
+        var resourceName = "Test-Profile.json";
+
+        await using (Stream? stream = assembly.GetManifestResourceStream(resourceName))
+        {
+            if (stream == null)
+            {
+                throw new FileNotFoundException($"Embedded resource '{resourceName}' not found.");
+            }
+            using (StreamReader reader = new StreamReader(stream))
+            {
+                var testProfileContent = reader.ReadToEnd();
+
+                // Write content to the target path.
+                var targetPath = Path.Combine(workingFolderPath, "Test-Profile.json");
+                File.WriteAllText(targetPath, testProfileContent);
+            }
+        }
+
+        logg.Information("Test-Profile created.");
+    }
+    else
+    {
+        logg.Information($"{existingProfiles.Length} Existing profiles found. Skipping creation of Test-Profile.");
+    }
 
     var scheduler = new EventScheduler("ES/", 44.8125, 20.4612);
     MemoryMonitor.StartMonitoring();
