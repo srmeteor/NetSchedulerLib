@@ -7,23 +7,43 @@ using Serilog.Core;
 using Serilog.Events;
 using LoggerExtensions = NetSchedulerLib.Utility.LoggerExtensions;
 using System.Reflection;
+using SchedulerTest;
+using Serilog.Formatting.Display;
+using Serilog.Formatting.Json;
+using Serilog.Sinks.File;
+using Serilog.Sinks.PeriodicBatching;
 
-// Create individual level switches
-var generalLevelSwitch = new LoggingLevelSwitch(LogEventLevel.Debug);
+// Configure batching behavior
+var batchingOptions = new PeriodicBatchingSinkOptions
+{
+    BatchSizeLimit = 100, // Maximum logs in a batch
+    Period = TimeSpan.FromMinutes(10), // Write to the file every 10 minutes
+    QueueLimit = 10000 // Maximum number of logs in the queue
+};
+
+// Define the text-based log format
+var textFormatter = new MessageTemplateTextFormatter(
+    "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff} {Level:u3}] [{ClassName}] {MethodName:lj} {Message:lj}{NewLine}{Exception}",
+    null
+);
+
+
+// Logging level switch for runtime log level adjustment
+var generalLevelSwitch = new LoggingLevelSwitch(initialMinimumLevel: LogEventLevel.Debug);
 
 Log.Logger = new LoggerConfiguration()
-    .Enrich.FromLogContext() // Enables capturing dynamic properties like "ClassName"
+    .Enrich.FromLogContext()
     .MinimumLevel.ControlledBy(generalLevelSwitch)
     .WriteTo.Console(
         outputTemplate: "[{Timestamp:HH:mm:ss.fff} {Level:u3}] [{ClassName}] {MethodName:lj} {Message:lj}{NewLine}{Exception}"
     )
-    .WriteTo.File(
-        "Logs/log-.txt",
-        restrictedToMinimumLevel: LogEventLevel.Verbose,
-        rollingInterval: RollingInterval.Day,
-        outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] [{ClassName}] {MethodName:lj} {Message:lj}{NewLine}{Exception}"
-    )
+    .WriteTo.Sink(new PeriodicBatchingSink(
+        new FileBatchingSink("Logs/log-.log", textFormatter), // Use text format and dynamic file names
+        batchingOptions
+    ))
     .CreateLogger();
+
+Log.Information("Application started...");
 
 var logg = LoggerExtensions.GetLoggerFor<Program>();
 
@@ -32,7 +52,15 @@ try
     logg.Information("Application Starting Up!");
     
     logg.Information("Checking for existing profiles...");
-    var existingProfiles = Directory.GetFiles("ES/", "*Profile.json");
+    
+   var workingFolderPath = Path.Combine(Directory.GetCurrentDirectory(), "ES");
+
+   if (!Directory.Exists(workingFolderPath))
+   {
+       Directory.CreateDirectory(workingFolderPath); // Create the directory if it doesn't exist
+   }
+
+   var existingProfiles = Directory.GetFiles(workingFolderPath, "*Profile.json");
     
     // Check if there are existing profiles
     if (existingProfiles.Length == 0)
@@ -40,7 +68,7 @@ try
         logg.Information("No existing profiles found. Creating Test-Profile...");
 
         // Ensure ES directory exists in the working folder.
-        var workingFolderPath = Path.Combine(Directory.GetCurrentDirectory(), "ES");
+        workingFolderPath = Path.Combine(Directory.GetCurrentDirectory(), "ES");
         if (!Directory.Exists(workingFolderPath))
         {
             Directory.CreateDirectory(workingFolderPath);

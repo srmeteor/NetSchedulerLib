@@ -13,9 +13,9 @@
 
     <ItemGroup>
       <None Remove="ES\Test-profile.json" />
-      <Resource Include="ES\Test-Profile.json">
+      <EmbeddedResource Include="ES\Test-Profile.json">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </Resource>
+      </EmbeddedResource>
     </ItemGroup>
 
     <ItemGroup>
