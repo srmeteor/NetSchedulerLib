@@ -9,9 +9,9 @@ using LoggerExtensions = NetSchedulerLib.Utility.LoggerExtensions;
 using System.Reflection;
 using SchedulerTest;
 using Serilog.Formatting.Display;
-using Serilog.Formatting.Json;
-using Serilog.Sinks.File;
 using Serilog.Sinks.PeriodicBatching;
+
+#region Configure Serilog
 
 // Configure batching behavior
 var batchingOptions = new PeriodicBatchingSinkOptions
@@ -35,13 +35,16 @@ Log.Logger = new LoggerConfiguration()
     .Enrich.FromLogContext()
     .MinimumLevel.ControlledBy(generalLevelSwitch)
     .WriteTo.Console(
-        outputTemplate: "[{Timestamp:HH:mm:ss.fff} {Level:u3}] [{ClassName}] {MethodName:lj} {Message:lj}{NewLine}{Exception}"
+        outputTemplate:
+        "[{Timestamp:HH:mm:ss.fff} {Level:u3}] [{ClassName}] {MethodName:lj} {Message:lj}{NewLine}{Exception}"
     )
     .WriteTo.Sink(new PeriodicBatchingSink(
         new FileBatchingSink("Logs/log-.log", textFormatter), // Use text format and dynamic file names
         batchingOptions
     ))
     .CreateLogger();
+
+#endregion
 
 Log.Information("Application started...");
 
@@ -50,18 +53,20 @@ var logg = LoggerExtensions.GetLoggerFor<Program>();
 try
 {
     logg.Information("Application Starting Up!");
-    
+
     logg.Information("Checking for existing profiles...");
-    
-   var workingFolderPath = Path.Combine(Directory.GetCurrentDirectory(), "ES");
 
-   if (!Directory.Exists(workingFolderPath))
-   {
-       Directory.CreateDirectory(workingFolderPath); // Create the directory if it doesn't exist
-   }
+    // Check if there are existing profiles in the ES folder.
+    var workingFolderPath = Path.Combine(Directory.GetCurrentDirectory(), "ES");
 
-   var existingProfiles = Directory.GetFiles(workingFolderPath, "*Profile.json");
-    
+    if (!Directory.Exists(workingFolderPath))
+    {
+        Directory.CreateDirectory(workingFolderPath); // Create the directory if it doesn't exist
+    }
+
+    // Check if there are existing profiles in the ES folder.
+    var existingProfiles = Directory.GetFiles(workingFolderPath, "*Profile.json");
+
     // Check if there are existing profiles
     if (existingProfiles.Length == 0)
     {
@@ -84,6 +89,7 @@ try
             {
                 throw new FileNotFoundException($"Embedded resource '{resourceName}' not found.");
             }
+
             using (StreamReader reader = new StreamReader(stream))
             {
                 var testProfileContent = reader.ReadToEnd();
@@ -101,20 +107,25 @@ try
         logg.Information($"{existingProfiles.Length} Existing profiles found. Skipping creation of Test-Profile.");
     }
 
+    // Initialize EventScheduler with Belgrade RS location
     var scheduler = new EventScheduler("ES/", 44.8125, 20.4612);
+    // Monitor Memory usage
     MemoryMonitor.StartMonitoring();
+    
+    // Attach event handler to monitor events
     scheduler.OnEventFired += SchedulerOnOnEventFired;
 
-    void SchedulerOnOnEventFired(IEsEvent obj)
+    void SchedulerOnOnEventFired(IEsEvent esEvent)
     {
         logg.Information(
-            $" *** EventScheduler: *** {DateTime.Now} ***> Profile: '{obj.Profile.Name}' {obj.EventType.ToString()}: '{obj.Name}' fired.\n" +
-            $"     Actions: {(obj.HasActions() 
-                ? $"{string.Join(", ", obj.GetActions())}"
+            $" *** EventScheduler: *** {DateTime.Now} ***> Profile: '{esEvent.Profile.Name}' {esEvent.EventType.ToString()}: '{esEvent.Name}' fired.\n" +
+            $"     Actions: {(esEvent.HasActions()
+                ? $"{string.Join(", ", esEvent.GetActions())}"
                 : $"No actions defined.")}");
-        obj.ExecuteActions(CreateAction);
+        esEvent.ExecuteActions(CreateAction);
     }
 
+    // Start Scheduler
     await scheduler.InitializeAsync();
 
     // Attach to application exit for cleanup
@@ -125,6 +136,7 @@ try
         Log.Information("Application stopped...");
     };
 
+    // Attach to CTRL+C for cleanup
     Console.CancelKeyPress += (sender, e) =>
     {
         e.Cancel = true; // Prevent immediate termination
@@ -133,6 +145,7 @@ try
         Environment.Exit(0); // Exit after cleanup
     };
 
+    // Show Initialized Profiles with events
     logg.Information("Scheduler initialized. Profiles:");
     var profiles = scheduler.GetProfiles();
     foreach (var profile in profiles)
@@ -145,17 +158,15 @@ try
                              $"{(ev.EventState == EEventState.Disabled ? " [DISABLED]" : "")}");
         }
 
+        // Add Some test actions to events
         if (profile.Name != "Test") continue;
         logg.Information("Adding actions to every 10 minutes events...");
         var evList = profile?.GetEvents();
         var everyTenMinEvents = evList?.FindAll(e => e.Name.Contains("Every 10 Minutes"));
-        if (everyTenMinEvents is {Count: > 0})
+        if (everyTenMinEvents is { Count: > 0 })
         {
             logg.Information($"Try Adding actions to {everyTenMinEvents.Count} events...");
-            everyTenMinEvents.ForEach(e =>
-            {
-                e.AddActions(["Test1Action", "Test2Action", "Test3Action"]);
-            });
+            everyTenMinEvents.ForEach(e => { e.AddActions(["Test1Action", "Test2Action", "Test3Action"]); });
         }
     }
 
@@ -183,8 +194,10 @@ try
                 }
                 else
                 {
-                    Console.WriteLine("Invalid log level. Valid levels are: Verbose, Debug, Information, Warning, Error, Fatal.");
+                    Console.WriteLine(
+                        "Invalid log level. Valid levels are: Verbose, Debug, Information, Warning, Error, Fatal.");
                 }
+
                 break;
 
             case "fatal":
@@ -220,5 +233,6 @@ void CreateAction(string action, object? sender = null)
     {
         senderInfo = $"{esEvent.Profile.Name} - {esEvent.Name}";
     }
+
     logg.Information($"Action '{action}' (sender:{senderInfo}) triggered via user callback.");
 }
