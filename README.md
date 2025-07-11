@@ -34,4 +34,4 @@ EveryNthMinute and EveryNthHour is also possible. There is EventRecurrenceRate p
 - NET8.0 with included nuget packages: SolarCalculator (for calculating Astronomical events times), Newtonsoft.Json (for configurations) and Serilog for logging
 
 ## Installation
-There is a TestScheduler project as example of EventScheduler usage. Test-Profile.json is provided as EmbeddedResource as example profile.
+There is a TestScheduler project as example of EventScheduler usage. Test-Profile.json is provided (EmbeddedResource) as example profile configuration.
