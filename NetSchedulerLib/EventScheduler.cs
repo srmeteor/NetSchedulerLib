@@ -13,17 +13,64 @@ namespace NetSchedulerLib;
 public class EventScheduler : IDisposable
 {
 
-    private readonly ConcurrentDictionary<string, IEsProfile> _profiles;
+    
     private static readonly ILogger Logg = LoggerExtensions.GetLoggerFor<EventScheduler>();
+    
+    #region Properties
+    
+    /// <summary>
+    /// A thread-safe collection that stores and manages event profiles within the system.
+    /// </summary>
+    /// <remarks>
+    /// The `_profiles` variable is a read-only instance of `ConcurrentDictionary` that maps profile names (as keys) to their respective `IEsProfile` instances (as values).
+    /// It is used for registering and retrieving profiles, ensuring thread-safe operations in a multi-threaded environment within the `EventScheduler` class.
+    /// </remarks>
+    private readonly ConcurrentDictionary<string, IEsProfile> _profiles;
 
 
+    /// <summary>
+    /// Gets the directory path used to store configuration files for `EventScheduler`.
+    /// </summary>
+    /// <remarks>
+    /// The `ConfigFolder` property represents the root folder where configuration files,
+    /// such as profile-specific JSON files, are saved or loaded.
+    /// If the specified directory does not exist, it is automatically created during the initialization process.
+    /// This ensures that all relevant configuration data for the scheduler is organized and persisted within a dedicated folder.
+    /// </remarks>
     public string ConfigFolder { get; }
 
+    /// <summary>
+    /// Represents the latitude coordinate used for solar time calculations in the `EventScheduler`.
+    /// </summary>
+    /// <remarks>
+    /// The `_latitude` variable is a read-only field storing the geographic latitude of the location
+    /// where solar time-related events are being calculated. It is provided during the initialization
+    /// of the `EventScheduler` instance and used within solar calculation methods, ensuring accurate
+    /// event timing based on the sun's position.
+    /// </remarks>
     private readonly double _latitude;
+
+    /// <summary>
+    /// Represents the geographic longitude used for solar time calculations in the EventScheduler.
+    /// </summary>
+    /// <remarks>
+    /// The `_longitude` variable is a read-only `double` that stores the longitude coordinate in decimal degrees.
+    /// It is utilized for computing solar events and times in conjunction with the _latitude, providing an accurate geographic context for scheduling operations.
+    /// The value is initialized via the EventScheduler constructor and remains unchanged throughout the scheduler's lifecycle.
+    /// </remarks>
     private readonly double _longitude;
-    
+
+    /// <summary>
+    /// Event that is triggered whenever an event profile fires an associated event.
+    /// </summary>
+    /// <remarks>
+    /// The `OnEventFired` event provides notifications whenever an `IEsEvent` instance
+    /// is fired within the `EventScheduler`. Subscribers can attach handlers to this event
+    /// to react to specific occurrences or perform custom actions when events are dispatched.
+    /// </remarks>
     public event Action<IEsEvent>? OnEventFired;
 
+    #endregion
 
     #region Constructor ********************************************************
 
@@ -86,8 +133,7 @@ public class EventScheduler : IDisposable
 
                     profile.OnProfileEventFired -= ProfileOnOnProfileEventFired;
                     profile.OnProfileEventFired += ProfileOnOnProfileEventFired;
-                    // if (profile.Changed)
-                    //     _ = profile.SaveAsync();
+                    
                 }
             }
         }
@@ -96,13 +142,15 @@ public class EventScheduler : IDisposable
             Logg.Error($"Error during profile initialization: {ex.Message}");
         }
     }
-    
-    
 
     #endregion
 
     #region Event Handlers
-    
+
+    /// <summary>
+    /// Handles the firing of a profile-specific event and invokes the global event handler if assigned.
+    /// </summary>
+    /// <param name="obj">The event object containing details about the fired event.</param>
     private void ProfileOnOnProfileEventFired(IEsEvent obj)
     {
         OnEventFired?.Invoke(obj);
@@ -368,7 +416,7 @@ public class EventScheduler : IDisposable
             // Check the current week for a valid recurrence day
             while (daysChecked < DateTime.DaysInMonth(currentDate.Year, currentDate.Month))
             {
-                // Map DayOfWeek (0-6) to the corresponding EWeekDays bit (1-64)
+                // Map Month dates (0-30) to the corresponding EMonthDates bit (1-31)
                 int currentDayBit = 1 << nextTime.Day;
 
                 // Check if the `currentDayBit` is part of the `additionalRate` and is in the future
@@ -377,13 +425,13 @@ public class EventScheduler : IDisposable
                     return nextTime; // Valid recurrence day found
                 }
 
-                // Increment to the next day
+                // Increment to the next date
                 nextTime = nextTime.AddDays(1);
                 daysChecked++;
             }
 
-            // Move to the next week block based on the recurrence rate
-            nextTime = nextTime.AddMonths((int)rate - 1); // Skip to the next applicable month block
+            // Move to the next month block based on the recurrence rate
+            nextTime = nextTime.AddMonths((int)rate - 1); // Skip to the next applicable month
         }
         
     }
@@ -418,11 +466,11 @@ public class EventScheduler : IDisposable
             var calculatingDate = date;
             var calculatingTime = date.TimeOfDay;
 
-            // Do not calculate for times earlier than 03:30 => in case DST change
-            if (calculatingTime.TotalMinutes < 210) // 210 = 3 hours 30 minutes
-            {
-                calculatingDate = calculatingDate.AddHours(3).AddMinutes(30);
-            }
+            // Do not calculate for times earlier than 03:00 => in case DST change
+            // So use 3:10 as calculated time
+            
+            calculatingDate = calculatingDate.AddMinutes(190 - calculatingTime.TotalMinutes);
+            
 
             DateTime solarTime;
             do
@@ -440,7 +488,7 @@ public class EventScheduler : IDisposable
                     _ => solarTimes.Sunset // Default to sunset
                 };
 
-                if (allowPast || solarTime >= DateTime.Now.AddMinutes(1))
+                if (allowPast || solarTime > DateTime.Now.AddMinutes(1))
                 {
                     break;
                 }

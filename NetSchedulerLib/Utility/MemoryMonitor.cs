@@ -6,6 +6,16 @@ public class MemoryMonitor
 {
     private static readonly ILogger Logger = LoggerExtensions.GetLoggerFor<MemoryMonitor>();
 
+    /// <summary>
+    /// Starts monitoring memory usage and logs memory statistics periodically.
+    /// This includes total memory usage and garbage collection counts for each generation.
+    /// The method operates on a separate thread and logs statistics every 10 minutes.
+    /// </summary>
+    /// <remarks>
+    /// This method continuously runs in the background after being started.
+    /// It helps in identifying memory consumption patterns and garbage collection frequency during application execution.
+    /// </remarks>
+    /// <exception cref="Exception">Logs any exceptions that occur during memory monitoring.</exception>
     public static void StartMonitoring()
     {
         new Thread(() =>

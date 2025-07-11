@@ -14,25 +14,9 @@ public class EsProfile : IEsProfile, IDisposable
 
 
     #region Properties
-
-    /// <summary>
-    /// Gets the name of the profile.
-    /// </summary>
-    /// <remarks>
-    /// The <c>Name</c> property uniquely identifies the profile within the context of the scheduler.
-    /// This name is typically used as a key to store, retrieve, or manipulate the profile
-    /// and its associated events within the application.
-    /// </remarks>
+    
     public string Name { get; }
-
-    /// <summary>
-    /// Gets or sets the description of the profile.
-    /// </summary>
-    /// <remarks>
-    /// The <c>Description</c> property provides detailed information or metadata about the profile.
-    /// It can be used to store context or notes about the purpose or function of the profile
-    /// within the application.
-    /// </remarks>
+    
     public string Description { get; private set; }
 
     /// <summary>
@@ -45,16 +29,7 @@ public class EsProfile : IEsProfile, IDisposable
     /// are consistently and efficiently written to the storage.
     /// </remarks>
     private bool _changed;
-
-    /// <summary>
-    /// Gets or sets a value indicating whether the profile has changes that need to be saved.
-    /// </summary>
-    /// <remarks>
-    /// The <c>Changed</c> property reflects whether modifications have been made to the profile
-    /// or its associated events. When set to <c>true</c>, a delayed save operation is triggered
-    /// automatically to persist the changes after a short interval. This mechanism helps in
-    /// aggregating consecutive updates for efficiency.
-    /// </remarks>
+    
     public bool Changed
     {
         get => _changed;
@@ -88,27 +63,10 @@ public class EsProfile : IEsProfile, IDisposable
     /// ensuring consistency and recovery across application sessions.
     /// </remarks>
     private readonly string _configFilePath;
-
-    /// <summary>
-    /// Gets the parent event scheduler associated with this profile.
-    /// </summary>
-    /// <remarks>
-    /// The <c>Owner</c> property represents the instance of <c>EventScheduler</c>
-    /// that manages and owns this profile. This relationship allows the profile
-    /// to interact with its scheduler and utilize shared resources or configurations.
-    /// Typically, the <c>Owner</c> is assigned during the profile's initialization and remains constant.
-    /// </remarks>
+    
     public EventScheduler Owner { get; private set; }
 
-    /// <summary>
-    /// Event triggered whenever an event associated with the profile is fired.
-    /// </summary>
-    /// <remarks>
-    /// The <c>OnProfileEventFired</c> event notifies subscribers about the occurrence of an event linked
-    /// to this profile. It is commonly used for handling or processing actions tied to specific
-    /// profile-related events as they happen. The event provides an <see cref="IEsEvent"/> parameter
-    /// with details of the event that was fired.
-    /// </remarks>
+
     public event Action<IEsEvent>? OnProfileEventFired;
 
     /// <summary>
@@ -122,7 +80,16 @@ public class EsProfile : IEsProfile, IDisposable
     /// </remarks>
     private readonly Timer _saveTimer;
 
-    // Semaphore for synchronizing writes to the configuration file
+    /// <summary>
+    /// A static semaphore used to regulate concurrent access to shared resources
+    /// within the context of profile operations.
+    /// </summary>
+    /// <remarks>
+    /// The <c>ProfileSemaphore</c> is utilized to ensure thread-safe operations
+    /// when handling asynchronous tasks related to the saving and updating of profiles.
+    /// It limits access to a single thread at a time, preventing race conditions
+    /// and ensuring data consistency during critical operations.
+    /// </remarks>
     private static readonly SemaphoreSlim ProfileSemaphore = new(1, 1);
     
     #endregion
@@ -146,11 +113,7 @@ public class EsProfile : IEsProfile, IDisposable
     #endregion
     
     #region Helper
-
-    /// <summary>
-    /// Retrieves a list of all events associated with this profile, sorted by their target time.
-    /// </summary>
-    /// <returns>A list of events ordered by their scheduled target time.</returns>
+    
     public List<IEsEvent> GetEvents()
     {
         var events = Events.Values.ToList();
@@ -159,8 +122,6 @@ public class EsProfile : IEsProfile, IDisposable
         return events;
         
     }
-
- 
 
     #endregion
     
@@ -178,7 +139,7 @@ public class EsProfile : IEsProfile, IDisposable
     {
         try
         {
-            _saveTimer.Change(3 * 1000, Timeout.Infinite);
+            // _saveTimer.Change(3 * 1000, Timeout.Infinite);
             return Events.Values.ToList()
                 .Where(eve => eve.EventState == EEventState.Disabled)
                 .Aggregate(true, (current, ev) => current && ev.Enable());
@@ -199,7 +160,7 @@ public class EsProfile : IEsProfile, IDisposable
     {
         try
         {
-            _saveTimer.Change(3 * 1000, Timeout.Infinite);
+            // _saveTimer.Change(3 * 1000, Timeout.Infinite); // Disable() will set Changed to true
             return Events.Values.ToList()
                 .Where(eve => eve.EventState == EEventState.Enabled)
                 .Aggregate(true, (current, ev) => current && ev.Disable());
@@ -222,7 +183,7 @@ public class EsProfile : IEsProfile, IDisposable
     {
         try
         {
-            _saveTimer.Change(3 * 1000, Timeout.Infinite);
+            // _saveTimer.Change(3 * 1000, Timeout.Infinite); Remove() will set Change
             return Events.Values.ToList()
                 .Aggregate(true, (current, ev) => 
                     current && RemoveEvent(ev.Name));
@@ -263,9 +224,10 @@ public class EsProfile : IEsProfile, IDisposable
                 return false;
             }
             esEvent.OnEventFired += HandleEventFired;
-            _changed = true;
+            
+            // Use Setter to activate Save Timer
+            Changed = true;
             Logg.Debug($"Profile: '{Name}' Added event {esEvent.Name} => {esEvent.TargetTime}");
-            _saveTimer.Change(3 * 1000, Timeout.Infinite);
             return true;
 
         }
@@ -296,8 +258,8 @@ public class EsProfile : IEsProfile, IDisposable
             {
                 removedEvent.OnEventFired -= HandleEventFired;
                 removedEvent.Dispose();
-                _changed = true; // Fire-and-forget configuration save
-                _saveTimer.Change(3 * 1000, Timeout.Infinite);
+                // Use Setter to activate Save Timer
+                Changed = true;
                 return true;
             }
         }
@@ -335,16 +297,18 @@ public class EsProfile : IEsProfile, IDisposable
     #endregion
     
     #region Save
-    
+
+    /// <summary>
+    /// Handles the saving of the profile if there are any unsaved changes.
+    /// Triggered periodically or explicitly to persist the profile state.
+    /// </summary>
+    /// <param name="state">An optional state object passed to the handler, not utilized in the current implementation.</param>
     private void SaveHandler(object? state)
     {
         if (!_changed) return;
         _ = SaveAsync();
     }
     
-    /// <summary>
-    /// Saves the profile (and its events) to the configuration file asynchronously.
-    /// </summary>
     public async Task SaveAsync()
     {
         await ProfileSemaphore.WaitAsync();
@@ -388,9 +352,15 @@ public class EsProfile : IEsProfile, IDisposable
         }
     }
 
-    public Models.EsEventCfg GetEventCfg(IEsEvent ev)
+    /// <summary>
+    /// Generates an event configuration object from the provided event instance.
+    /// Extracts event details such as ID, name, description, state, type, recurrence properties,
+    /// target time, last fired time, and associated actions.
+    /// </summary>
+    /// <param name="ev">The event instance from which the configuration is created.</param>
+    /// <returns>A configuration object that represents the specified event.</returns>
+    private Models.EsEventCfg GetEventCfg(IEsEvent ev)
     {
-
         return new Models.EsEventCfg()
         {
             Id = ev.Id,

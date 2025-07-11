@@ -7,15 +7,30 @@ namespace NetSchedulerLib.Utility;
 
 public class FileOperation
     {
-        private static readonly ILogger Logg = LoggerExtensions.GetLoggerFor<FileOperation>("File"); 
-        
+        private static readonly ILogger Logg = LoggerExtensions.GetLoggerFor<FileOperation>("File");
+
+        /// <summary>
+        /// A static semaphore object used to synchronize access to file-level operations.
+        /// This ensures that only one operation accesses the file at a time, preventing
+        /// race conditions or resource conflicts in scenarios involving concurrent file handling.
+        /// </summary>
         private static readonly SemaphoreSlim 
             FileSemaphore = new SemaphoreSlim(1, 1); // For file-level operations
 
+        /// <summary>
+        /// A static semaphore object used to synchronize access to directory-level operations.
+        /// This ensures that concurrent operations on directories, such as copying, moving, or zipping
+        /// are properly coordinated, preventing resource conflicts and ensuring thread safety.
+        /// </summary>
         private static readonly SemaphoreSlim
             DirectorySemaphore = new SemaphoreSlim(1, 1); // For directory-level operations
 
 
+        /// <summary>
+        /// Reads the content of a file asynchronously and returns it as a string.
+        /// </summary>
+        /// <param name="filePath">The full path to the file to be read.</param>
+        /// <returns>A string containing the content of the file, or an empty string if an error occurs.</returns>
         public static async Task<string> ReadFileAsync(string filePath)
         {
             string fileData = string.Empty;
@@ -56,6 +71,13 @@ public class FileOperation
             return fileData;
         }
 
+        /// <summary>
+        /// Updates the content of a file asynchronously using the specified file data and write option.
+        /// </summary>
+        /// <param name="fileData">The data to write to the file.</param>
+        /// <param name="filePath">The full path to the file to be updated.</param>
+        /// <param name="writeOption">The <see cref="FileMode"/> that specifies how the operating system should open the file.</param>
+        /// <returns>A boolean value indicating whether the file update was successful.</returns>
         public static async Task<bool> UpdateFileAsync(string fileData, string filePath, FileMode writeOption)
         {
             bool updateSuccess;
@@ -147,6 +169,14 @@ public class FileOperation
             }
         }
 
+        /// <summary>
+        /// Moves a directory from a source path to a destination path across different devices.
+        /// Copies all files and subdirectories recursively from the source directory to the destination,
+        /// and then deletes the source directory.
+        /// </summary>
+        /// <param name="sourceDir">The full path of the source directory to be moved.</param>
+        /// <param name="destDir">The full path of the destination directory where the contents are to be moved.</param>
+        /// <exception cref="DirectoryNotFoundException">Thrown when the source directory does not exist.</exception>
         private static void MoveDirectoryCrossDevice(string sourceDir, string destDir)
         {
             if (!Directory.Exists(sourceDir))
@@ -252,6 +282,11 @@ public class FileOperation
             return false;
         }
 
+        /// <summary>
+        /// Deletes the specified file asynchronously.
+        /// </summary>
+        /// <param name="filePath">The full path to the file to be deleted.</param>
+        /// <returns>True if the file is successfully deleted, otherwise false.</returns>
         public static async Task<bool> FileDeleteAsync(string filePath)
         {
             if (string.IsNullOrEmpty(filePath))
@@ -279,6 +314,12 @@ public class FileOperation
             }
         }
 
+        /// <summary>
+        /// Retrieves a list of file paths from the specified directory that match the given search pattern.
+        /// </summary>
+        /// <param name="directoryPath">The path of the directory to search for files.</param>
+        /// <param name="searchPattern">The search pattern to filter the files, or null/empty for all files in the directory.</param>
+        /// <returns>An array of file paths matching the search criteria, or null if the directory does not exist or an error occurs.</returns>
         public static async Task<string[]?> GetFileListAsync(string directoryPath, string searchPattern)
         {
             Logg.Information(

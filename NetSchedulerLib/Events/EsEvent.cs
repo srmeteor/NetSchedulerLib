@@ -57,7 +57,7 @@ public class EsEvent : IEsEvent, IDisposable
     public string? Date { get; set; }
     public EEventState EventState { get; private set; }
     public EEventType EventType { get; private set;}
-    private object UserObject { get; set; }
+    private object? UserObject { get; set; }
     public ERecurrence Recurrence { get; }
     public uint Rate { get; }
     public int AdditionalRate { get; private set; }
@@ -179,7 +179,11 @@ public class EsEvent : IEsEvent, IDisposable
     #endregion
     
     #region Start (Enable-Disable)
-    
+
+    /// <summary>
+    /// Initializes and starts the event's timer to fire at the next full minute.
+    /// </summary>
+    /// <exception cref="Exception">Thrown when an error occurs while starting the event, containing the original exception as inner exception.</exception>
     private void Start()
     {
         try
@@ -231,7 +235,12 @@ public class EsEvent : IEsEvent, IDisposable
     #endregion
 
     #region Check if Firing
-    
+
+    /// <summary>
+    /// Validates the time for the event execution and processes the event accordingly.
+    /// </summary>
+    /// <param name="state">State object supplied by the scheduler, can be null.</param>
+    /// <exception cref="Exception">Thrown if there is an error during event processing or scheduling the next check time.</exception>
     private void CheckTime(object? state)
     {
         try
@@ -366,11 +375,6 @@ public class EsEvent : IEsEvent, IDisposable
     
     #region Actions
 
-    /// <summary>
-    /// Adds a collection of actions to the current event.
-    /// </summary>
-    /// <param name="actions">The list of actions to be added to the event.</param>
-    /// <exception cref="NotImplementedException">Thrown when the method is not implemented.</exception>
     public void AddActions(List<string>? actions)
     {
         if (actions is null) return;
@@ -380,10 +384,6 @@ public class EsEvent : IEsEvent, IDisposable
         }
     }
 
-    /// <summary>
-    /// Removes a list of actions from the event.
-    /// </summary>
-    /// <param name="actions">The list of actions to be removed. If null, no actions are removed.</param>
     public void RemoveActions(List<string>? actions)
     {
         if (actions is null) return;
@@ -393,11 +393,6 @@ public class EsEvent : IEsEvent, IDisposable
         }
     }
 
-    /// <summary>
-    /// Retrieves the list of actions associated with the event.
-    /// </summary>
-    /// <returns>A list of strings representing the actions.</returns>
-    /// <exception cref="NotImplementedException">Thrown when the method is not implemented.</exception>
     public List<string> GetActions()
     {
         if (UserObject is List<string> actions)
@@ -407,11 +402,6 @@ public class EsEvent : IEsEvent, IDisposable
         return new List<string>();
     }
 
-    /// <summary>
-    /// Adds an action to the event.
-    /// </summary>
-    /// <param name="action">The action to add.</param>
-    /// <exception cref="NotImplementedException">Thrown when the method is not implemented.</exception>
     public void AddAction(string action)
     {
         if (string.IsNullOrWhiteSpace(action)) return;
@@ -425,11 +415,6 @@ public class EsEvent : IEsEvent, IDisposable
         Profile.Changed = true;
     }
 
-    /// <summary>
-    /// Removes an action from the event.
-    /// </summary>
-    /// <param name="action">The action to remove.</param>
-    /// <exception cref="NotImplementedException">Thrown when the method is not implemented.</exception>
     public void RemoveAction(string? action)
     {
         if (string.IsNullOrWhiteSpace(action)) return;
@@ -440,42 +425,25 @@ public class EsEvent : IEsEvent, IDisposable
         Profile.Changed = true;
     }
 
-    /// <summary>
-    /// Removes all actions associated with the event.
-    /// </summary>
-    /// <exception cref="NotImplementedException">Thrown when the method is not implemented.</exception>
     public void ClearActions()
     {
         UserObject = new List<string>();
         Profile.Changed = true;
     }
 
-    /// <summary>
-    /// Replaces the current list of actions associated with the event.
-    /// </summary>
-    /// <param name="actions">The new list of actions to associate with the event. Existing actions will be replaced.</param>
-    public void SetActions(List<string> actions)
+    public void SetActions(List<string>? actions)
     {
+        if (actions is null) return;
         UserObject = actions;
         Profile.Changed = true;
     }
 
-    /// <summary>
-    /// Determines whether the event has any associated actions.
-    /// </summary>
-    /// <returns>True if the event has one or more actions; otherwise, false.</returns>
     public bool HasActions()
     {
         return UserObject is List<string> { Count: > 0 };
     }
 
 
-    /// <summary>
-    /// Checks whether a specified action exists within the event using the specified string comparison option.
-    /// </summary>
-    /// <param name="action">The action to check for within the event.</param>
-    /// <param name="comparison">The type of string comparison to use when evaluating the action.</param>
-    /// <returns>Returns true if the action exists in the event, otherwise false.</returns>
     public bool HasAction(string action, StringComparison comparison)
     {
         if (string.IsNullOrWhiteSpace(action))
@@ -491,10 +459,6 @@ public class EsEvent : IEsEvent, IDisposable
     }
 
 
-    /// <summary>
-    /// Executes all actions associated with the event.
-    /// </summary>
-    /// <param name="actionCallback">A general callback to execute for each action. This can be any delegate capable of processing the action and its context.</param>
     public void ExecuteActions(Action<string, object?>? actionCallback)
     {
         if (actionCallback == null) return;

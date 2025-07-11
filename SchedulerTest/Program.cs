@@ -16,7 +16,7 @@ using Serilog.Sinks.PeriodicBatching;
 // Configure batching behavior
 var batchingOptions = new PeriodicBatchingSinkOptions
 {
-    BatchSizeLimit = 100, // Maximum logs in a batch
+    BatchSizeLimit = 500, // Maximum logs in a batch
     Period = TimeSpan.FromMinutes(10), // Write to the file every 10 minutes
     QueueLimit = 10000 // Maximum number of logs in the queue
 };
@@ -35,7 +35,7 @@ Log.Logger = new LoggerConfiguration()
     .Enrich.FromLogContext()
     .MinimumLevel.ControlledBy(generalLevelSwitch)
     .WriteTo.Console(
-        outputTemplate:
+        outputTemplate: 
         "[{Timestamp:HH:mm:ss.fff} {Level:u3}] [{ClassName}] {MethodName:lj} {Message:lj}{NewLine}{Exception}"
     )
     .WriteTo.Sink(new PeriodicBatchingSink(
@@ -134,6 +134,7 @@ try
         scheduler.OnEventFired -= SchedulerOnOnEventFired;
         scheduler.Dispose(); // Dispose scheduler gracefully
         Log.Information("Application stopped...");
+        Log.CloseAndFlush(); // Ensure logs are flushed and released
     };
 
     // Attach to CTRL+C for cleanup
@@ -142,6 +143,8 @@ try
         e.Cancel = true; // Prevent immediate termination
         Log.Information("CTRL+C detected. Stopping the application...");
         scheduler.Dispose(); // Cleanup resources
+        Log.Information("Application stopped by CTRL+C. Exiting...");
+        Log.CloseAndFlush(); // Ensure logs are flushed and released
         Environment.Exit(0); // Exit after cleanup
     };
 
@@ -150,7 +153,7 @@ try
     var profiles = scheduler.GetProfiles();
     foreach (var profile in profiles)
     {
-        logg.Information($"{profile.Name} => Events ({profile.Events.Count})");
+        logg.Information($"{profile.Name} => Events ({profile.GetEvents().Count})");
         var events = profile.GetEvents();
         foreach (var ev in events)
         {
