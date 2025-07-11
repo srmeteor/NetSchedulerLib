@@ -14,12 +14,47 @@ public class EsProfile : IEsProfile, IDisposable
 
 
     #region Properties
-    
+
+    /// <summary>
+    /// Gets the name of the profile.
+    /// </summary>
+    /// <remarks>
+    /// The <c>Name</c> property uniquely identifies the profile within the context of the scheduler.
+    /// This name is typically used as a key to store, retrieve, or manipulate the profile
+    /// and its associated events within the application.
+    /// </remarks>
     public string Name { get; }
+
+    /// <summary>
+    /// Gets or sets the description of the profile.
+    /// </summary>
+    /// <remarks>
+    /// The <c>Description</c> property provides detailed information or metadata about the profile.
+    /// It can be used to store context or notes about the purpose or function of the profile
+    /// within the application.
+    /// </remarks>
     public string Description { get; private set; }
-    
+
+    /// <summary>
+    /// Indicates whether the profile's state or configuration has been modified.
+    /// </summary>
+    /// <remarks>
+    /// The <c>_changed</c> field is used internally to track if any changes
+    /// have been made that require persistence. When set to <c>true</c>, a timer
+    /// is triggered to save updates after a short delay, ensuring that changes
+    /// are consistently and efficiently written to the storage.
+    /// </remarks>
     private bool _changed;
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the profile has changes that need to be saved.
+    /// </summary>
+    /// <remarks>
+    /// The <c>Changed</c> property reflects whether modifications have been made to the profile
+    /// or its associated events. When set to <c>true</c>, a delayed save operation is triggered
+    /// automatically to persist the changes after a short interval. This mechanism helps in
+    /// aggregating consecutive updates for efficiency.
+    /// </remarks>
     public bool Changed
     {
         get => _changed;
@@ -34,14 +69,57 @@ public class EsProfile : IEsProfile, IDisposable
         }
     }
 
-    public ConcurrentDictionary<string, IEsEvent> Events { get; }
+    /// <summary>
+    /// Provides access to the collection of events associated with this profile.
+    /// </summary>
+    /// <remarks>
+    /// The <c>Events</c> property is a thread-safe dictionary that stores events managed by the profile.
+    /// Events are identified by their unique string-based keys. This collection is used internally
+    /// to retrieve, manipulate, or iterate over events within the profile.
+    /// </remarks>
+    private ConcurrentDictionary<string, IEsEvent> Events { get; }
 
+    /// <summary>
+    /// Represents the file path where the profile's configuration data is stored.
+    /// </summary>
+    /// <remarks>
+    /// The <c>_configFilePath</c> is initialized based on the associated <c>EventScheduler</c>'s configuration folder
+    /// and the profile's name. It is used to save and load persistent profile data, such as events and metadata,
+    /// ensuring consistency and recovery across application sessions.
+    /// </remarks>
     private readonly string _configFilePath;
 
+    /// <summary>
+    /// Gets the parent event scheduler associated with this profile.
+    /// </summary>
+    /// <remarks>
+    /// The <c>Owner</c> property represents the instance of <c>EventScheduler</c>
+    /// that manages and owns this profile. This relationship allows the profile
+    /// to interact with its scheduler and utilize shared resources or configurations.
+    /// Typically, the <c>Owner</c> is assigned during the profile's initialization and remains constant.
+    /// </remarks>
     public EventScheduler Owner { get; private set; }
 
+    /// <summary>
+    /// Event triggered whenever an event associated with the profile is fired.
+    /// </summary>
+    /// <remarks>
+    /// The <c>OnProfileEventFired</c> event notifies subscribers about the occurrence of an event linked
+    /// to this profile. It is commonly used for handling or processing actions tied to specific
+    /// profile-related events as they happen. The event provides an <see cref="IEsEvent"/> parameter
+    /// with details of the event that was fired.
+    /// </remarks>
     public event Action<IEsEvent>? OnProfileEventFired;
-    
+
+    /// <summary>
+    /// Manages the scheduling of save operations for the profile.
+    /// </summary>
+    /// <remarks>
+    /// The <c>_saveTimer</c> is responsible for triggering save operations after a specified delay.
+    /// It is used to batch multiple configuration changes into a single save operation, reducing
+    /// the frequency of disk writes. It is typically activated when the <c>Changed</c> property of
+    /// the <see cref="EsProfile"/> is set to <c>true</c>.
+    /// </remarks>
     private readonly Timer _saveTimer;
 
     // Semaphore for synchronizing writes to the configuration file
@@ -52,8 +130,8 @@ public class EsProfile : IEsProfile, IDisposable
     #region  Constructor *********************************************************************
 
     /// <summary>
-    /// Represents a profile in the Event Scheduler system, managing a collection of scheduled events,
-    /// and providing functionality for profile configuration persistence and event handling.
+    /// Represents a profile containing configurable events for a scheduler.
+    /// Provides functionality to manage, add, remove, enable, disable, and save events asynchronously.
     /// </summary>
     public EsProfile(EventScheduler parent, string name, string description = "")
     {
@@ -69,6 +147,10 @@ public class EsProfile : IEsProfile, IDisposable
     
     #region Helper
 
+    /// <summary>
+    /// Retrieves a list of all events associated with this profile, sorted by their target time.
+    /// </summary>
+    /// <returns>A list of events ordered by their scheduled target time.</returns>
     public List<IEsEvent> GetEvents()
     {
         var events = Events.Values.ToList();
@@ -84,6 +166,14 @@ public class EsProfile : IEsProfile, IDisposable
     
     #region Add/Remove
 
+    /// <summary>
+    /// Enables all events in the profile that are currently disabled.
+    /// Iterates through the list of events, enabling each event and handling errors.
+    /// </summary>
+    /// <returns>
+    /// A boolean indicating whether all events were successfully enabled.
+    /// Returns false if an exception occurs during the process.
+    /// </returns>
     public bool EnableAllEvents()
     {
         try
@@ -100,6 +190,11 @@ public class EsProfile : IEsProfile, IDisposable
         return false;
     }
 
+    /// <summary>
+    /// Disables all events associated with the profile.
+    /// Attempts to set all enabled events to a disabled state and updates their status accordingly.
+    /// </summary>
+    /// <returns>True if all events were successfully disabled, otherwise false.</returns>
     public bool DisableAllEvents()
     {
         try
@@ -116,6 +211,13 @@ public class EsProfile : IEsProfile, IDisposable
         return false;
     }
 
+    /// <summary>
+    /// Removes all events associated with the profile.
+    /// Triggers the profile's save operation with a slight delay and ensures all events are removed safely.
+    /// </summary>
+    /// <returns>
+    /// True if all events are successfully removed; otherwise, false.
+    /// </returns>
     public bool RemoveAllEvents()
     {
         try
@@ -132,8 +234,15 @@ public class EsProfile : IEsProfile, IDisposable
         
         return false;
     }
-        
-        
+
+
+    /// <summary>
+    /// Adds a new event to the profile using the specified event configuration.
+    /// Provides an option to overwrite an existing event with the same name if already present.
+    /// </summary>
+    /// <param name="esEventCfg">The configuration details of the event to be added.</param>
+    /// <param name="overwrite">Indicates whether to overwrite an existing event with the same name. The default value is true.</param>
+    /// <returns>True if the event was successfully added; otherwise, false.</returns>
     public bool AddEvent(Models.EsEventCfg esEventCfg, bool overwrite = true)
     {
         try
@@ -169,8 +278,14 @@ public class EsProfile : IEsProfile, IDisposable
     }
 
     /// <summary>
-    /// Removes an event from the profile and updates the configuration asynchronously.
+    /// Removes an event by its name from the profile.
+    /// Ensures that associated resources are properly disposed of and updates the profile's state.
     /// </summary>
+    /// <param name="eventName">The name of the event to be removed. It must not be null or whitespace.</param>
+    /// <returns>
+    /// Returns true if the event was successfully removed; otherwise, false.
+    /// Returns false if the event does not exist or an error occurs during the removal process.
+    /// </returns>
     public bool RemoveEvent(string? eventName)
     {
         if (string.IsNullOrWhiteSpace(eventName)) return false;
@@ -206,9 +321,10 @@ public class EsProfile : IEsProfile, IDisposable
         try
         {
             OnProfileEventFired?.Invoke(firedEvent);
-            // Logg.Information($"Profile: '{Name}' Event '{firedEvent.Name}' fired. Handling update");
+            Logg.Debug($"Profile: '{Name}' Event '{firedEvent.Name}' fired. Handling update");
             // Allow other events to fire before saving
-            _saveTimer.Change(3 * 1000, Timeout.Infinite); // Save in 30 seconds in case of multiple events
+            // It is managed with Change Property
+            // _saveTimer.Change(3 * 1000, Timeout.Infinite); // Save in 30 seconds in case of multiple events
         }
         catch (Exception ex)
         {

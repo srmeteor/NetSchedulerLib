@@ -9,13 +9,45 @@ namespace NetSchedulerLib.Events;
 public class EsEvent : IEsEvent, IDisposable
 {
     #region Properties
-    
+
+    /// <summary>
+    /// Logger instance used for logging events, errors, and other activities within the <see cref="EsEvent"/> class.
+    /// </summary>
+    /// <remarks>
+    /// This logger is initialized using the <see cref="NetSchedulerLib.Utility.LoggerExtensions.GetLoggerFor{T}"/> method
+    /// and is scoped specifically to the <see cref="EsEvent"/> class. It provides mechanisms to log informational messages,
+    /// errors, and exceptions that occur during the lifecycle of an event, such as its creation, state changes, or execution failures.
+    /// </remarks>
     private static readonly ILogger Logg = LoggerExtensions.GetLoggerFor<EsEvent>();
 
-    
+    /// <summary>
+    /// Event triggered when an <see cref="IEsEvent"/> is fired.
+    /// </summary>
+    /// <remarks>
+    /// This event provides notifications to subscribers whenever an associated event is fired.
+    /// It delivers an <see cref="IEsEvent"/> instance as a parameter, allowing subscribers to
+    /// handle or process the corresponding event details accordingly. The event is primarily
+    /// used to perform actions or propagate changes linked to the specific event being triggered.
+    /// </remarks>
+    /// 
     public event Action<IEsEvent>? OnEventFired;
+
+    /// <summary>
+    /// Id is Auto changed while sorting events
+    /// Id-1 meaning this is first event to fire
+    /// </summary>
     public uint Id { get; set; }
+
+    /// <summary>
+    /// Represents the name of the event within the <see cref="EsEvent"/> class.
+    /// </summary>
+    /// <remarks>
+    /// The <c>Name</c> property uniquely identifies the event and is utilized in various operations, such as
+    /// adding, removing, or managing events within the context of an <see cref="EsProfile"/>. Its value is immutable
+    /// and is assigned during the creation of the event, ensuring consistent identification throughout the event's lifecycle.
+    /// </remarks>
     public string Name { get; }
+
     public string Description { get; set; }
     public string RecDescription { get; set; }
     public IEsProfile Profile { get; private set; }
@@ -198,7 +230,7 @@ public class EsEvent : IEsEvent, IDisposable
     
     #endregion
 
-    
+    #region Check if Firing
     
     private void CheckTime(object? state)
     {
@@ -241,7 +273,7 @@ public class EsEvent : IEsEvent, IDisposable
     }
     
     
-    
+    #endregion
     
     #region CalculateNextTime
 
@@ -331,20 +363,6 @@ public class EsEvent : IEsEvent, IDisposable
     
     
     #endregion
-    
-    #region Dispose/Sort/Equals/GetHashCode
-    
-    private bool _disposed;
-    
-    public void Dispose()
-    {
-        if (_disposed) return;
-        
-        _checkTimer.Dispose();
-        GC.SuppressFinalize(this);
-        Logg.Debug($"Event: '{Name}' disposed.");
-        _disposed = true;
-    }
     
     #region Actions
 
@@ -490,6 +508,20 @@ public class EsEvent : IEsEvent, IDisposable
     }
     
     #endregion
+    
+    #region Dispose
+    
+    private bool _disposed;
+    
+    public void Dispose()
+    {
+        if (_disposed) return;
+        
+        _checkTimer.Dispose();
+        GC.SuppressFinalize(this);
+        Logg.Debug($"Event: '{Name}' disposed.");
+        _disposed = true;
+    }
 
 
     #endregion
