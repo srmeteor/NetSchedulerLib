@@ -174,6 +174,38 @@ try
     }
 
     logg.Information("Press CTRL+C to stop. Or type 'exit' to quit.");
+    
+    #region Example: Adding Profile and Events
+
+    // if (scheduler.AddProfile("Test2", "Test Profile 2"))
+    // {
+    //     var test2 = scheduler.GetProfile("Test2");
+    //     test2?.AddEvent(new Models.EsEventCfg
+    //     {
+    //         Name = "Event1",
+    //         EventRecurrence = "EveryNthDay",
+    //         EventType = nameof(EEventType.AbsoluteEvent),
+    //         EventState = nameof(EEventState.Enabled),
+    //         EventRecurrenceRate = 1,
+    //         EventRecAdditionalRate = 0,
+    //         Time = "12:00",
+    //         Date = "07/15/2025"
+    //     }, overwrite: true);
+    //     test2?.AddEvent(new Models.EsEventCfg
+    //     {
+    //         Name = "Event2",
+    //         EventRecurrence = "EveryNthDay",
+    //         EventType = nameof(EEventType.AstronomicalEvent),
+    //         EventState = nameof(EEventState.Enabled),
+    //         EventRecurrenceRate = 1,
+    //         EventRecAdditionalRate = 0,
+    //         AstroOffset = $"{nameof(EAstroEvent.Sunrise)}:-10",
+    //         TargetTime = "2025-07-15T00:00:00+02:00",
+    //     }, overwrite: true);
+    // }
+    
+    
+    #endregion
 
     // Main loop to read user input
     while (true)

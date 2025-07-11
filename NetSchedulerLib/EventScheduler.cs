@@ -162,6 +162,63 @@ public class EventScheduler : IDisposable
     #region Helper Methods
 
     /// <summary>
+    /// Adds a new profile to the event scheduler with the specified name and optional description.
+    /// </summary>
+    /// <param name="profileName">The name of the profile to be added.</param>
+    /// <param name="description">An optional description for the profile.</param>
+    /// <returns>True if the profile is successfully added; otherwise, false.</returns>
+    public bool AddProfile(string? profileName, string? description = null)
+    {
+        try
+        {
+            ArgumentNullException.ThrowIfNull(profileName);
+
+
+            var profile = new EsProfile(this, profileName, description ?? "");
+            if (_profiles.TryAdd(profileName, profile))
+            {
+                Logg.Information($"Profile '{profile.Name}' successfully added.");
+                return true;
+            }
+
+            Logg.Error($"Profile '{profile.Name}' already exists. Skipping...");
+
+
+        }
+        catch (Exception e)
+        {
+            Logg.Error($"AddProfile Error: {e.Message}");
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Removes an existing profile from the scheduler by its name.
+    /// </summary>
+    /// <param name="profileName">The name of the profile to remove.</param>
+    public void RemoveProfile(string profileName)
+    {
+        try
+        {
+            ArgumentNullException.ThrowIfNull(profileName);
+            if (_profiles.TryRemove(profileName, out var profile))
+            {
+                Logg.Information($"Profile '{profile.Name}' successfully removed.");
+            }
+            else
+            {
+                Logg.Error($"Profile '{profileName}' does not exist. Skipping...");
+            }
+
+        }
+        catch (Exception e)
+        {
+            Logg.Error($"RemoveProfile Error: {e.Message}");
+        }
+    }
+
+    /// <summary>
     /// Retrieves a profile by its name from the available profiles.
     /// </summary>
     /// <param name="name">The name of the profile to retrieve.</param>
