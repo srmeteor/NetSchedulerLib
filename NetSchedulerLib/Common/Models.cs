@@ -8,43 +8,52 @@ public static class Models
     public class EsEventCfg
     {
         /// <summary>
-        /// unique event id
+        /// Will be automatically changed after sorting events 
         /// </summary>
         [JsonProperty("id")]
         public uint Id { get; set; }
 
+        /// <summary>
+        /// Unique Event Name per Profile
+        /// </summary>
         [JsonProperty("name")] public string? Name { get; set; }
 
+        /// <summary>
+        /// Optional Event Description
+        /// </summary>
         [JsonProperty("description")] public string? Description { get; set; }
         
+        /// <summary>
+        /// Automatically generated describing Event Recurrence
+        /// </summary>
         [JsonProperty("rec-description")] public string? RecDescription { get; set; }
 
         /// <summary>
-        /// astro/time-date
+        /// AbsoluteEvent | AstronomicalEvent
         /// </summary>
         [JsonProperty("type")]
         public string? EventType { get; set; }
 
         /// <summary>
-        /// enabled/disabled
+        /// Enabled | Disabled
         /// </summary>
         [JsonProperty("state")]
         public string? EventState { get; set; }
 
         /// <summary>
-        /// Not Set/Daily/Weekly/Monthly/Yearly/...EveryNthDay/Month/...
+        /// Not Set | EveryNthMinute | EveryNthHour | EveryNthDay/Week/Month/Year
         /// </summary>
         [JsonProperty("frequency")]
         public string? EventRecurrence { get; set; }
 
         /// <summary>
-        /// Every Nth(rate) Day, Month, Year, Week, ...
+        /// Every Nth(rate) Minute, Hour, Day, Week, Month, Year
         /// </summary>
         [JsonProperty("rate")]
         public int EventRecurrenceRate { get; set; }
 
         /// <summary>
-        /// Represents Selected weekdays, day in month, etc.
+        /// Represents Selected weekdays, days in month
         /// </summary>
         [JsonProperty("add-rate")]
         public int EventRecAdditionalRate { get; set; }
@@ -61,36 +70,59 @@ public static class Models
         [JsonProperty("target-time")]
         public string? TargetTime { get; set; }
         
+        /// <summary>
+        /// This property is updated on Event-Fire
+        /// </summary>
         [JsonProperty("last-fired")]
         public string? LastFired { get; set; }
         
         /// <summary>
         /// next event target time in format HH:mm
-        /// Old scheduler
+        /// Compatibility with Old event config
         /// </summary>
         [JsonProperty("time")]
         public string? Time { get; set; }
         
         /// <summary>
         /// next event target date in format MM/dd/yyyy
-        /// Old scheduler
+        /// Compatibility with Old event config
         /// </summary>
         [JsonProperty("date")]
         public string? Date { get; set; }
 
-
+        /// <summary>
+        /// Unused property
+        /// Compatibility with Old event config
+        /// </summary>
         [JsonProperty("acknowledge")] public bool Acknowledge { get; set; }
 
+        /// <summary>
+        /// Event Actions (string action representation)
+        /// </summary>
         [JsonProperty("actions")] public List<string>? Actions { get; set; }
         
     }
     
     public class EsProfileCfg
     {
+        /// <summary>
+        /// Unique Name per EventScheduler Instance
+        /// </summary>
         [JsonProperty("name")] public string? Name { get; set; }
+        
+        /// <summary>
+        /// Optional Profile Description
+        /// </summary>
         [JsonProperty("description")] public string? Description { get; set; }
+        
+        /// <summary>
+        /// Events associated with this Profile
+        /// </summary>
         [JsonProperty("events")] public List<EsEventCfg>? Events { get; set; }
         
+        /// <summary>
+        /// Auto updated on Profile save
+        /// </summary>
         [JsonProperty("last-modified")] public string? LastModified { get; set; }
     }
 }
@@ -112,11 +144,6 @@ public enum EEventState
     Disabled
 }
 
-public enum EState
-{
-    Enabled,
-    Disabled
-}
 
 public enum EEventType
 {

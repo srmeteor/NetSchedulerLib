@@ -189,7 +189,7 @@ public class EsEvent : IEsEvent, IDisposable
 
     public bool Disable()
     {
-        if (EventState == EEventState.Disabled) return false;
+        if (EventState == EEventState.Disabled) return true;
         _checkTimer.Change(Timeout.Infinite, Timeout.Infinite);
         EventState = EEventState.Disabled;
         Profile.Changed = true;
@@ -492,33 +492,6 @@ public class EsEvent : IEsEvent, IDisposable
     #endregion
 
 
-    // public override bool Equals(object? other)
-    // {
-    //     if (other == null) return false;
-    //     return other is IEsEvent otherData && Equals(otherData);
-    // }
-    //
-    //
-    //
-    // public bool Equals(IEsEvent? other)
-    // {
-    //     if (ReferenceEquals(null, other)) return false;
-    //     if (ReferenceEquals(this, other)) return true;
-    //     return TargetTime.Equals(other.TargetTime);
-    // }
-    //
-    // public override int GetHashCode()
-    // {
-    //     return Name.GetHashCode();
-    // }
-    //
-    // // Default comparer for Part type.
-    // public int CompareTo(IEsEvent? compareEvent)
-    // {
-    //     // A null value means this object is greater.
-    //     return compareEvent == null ? 1 : TargetTime.CompareTo(compareEvent.TargetTime);
-    // }
-    
     #endregion
  
 }
