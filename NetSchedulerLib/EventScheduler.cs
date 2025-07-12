@@ -194,9 +194,9 @@ public class EventScheduler : IDisposable
     }
 
     /// <summary>
-    /// Removes an existing profile from the scheduler by its name.
+    /// Removes a profile from the scheduler and its associated resources.
     /// </summary>
-    /// <param name="profileName">The name of the profile to remove.</param>
+    /// <param name="profileName">The name of the profile to be removed.</param>
     public void RemoveProfile(string profileName)
     {
         try
@@ -204,7 +204,17 @@ public class EventScheduler : IDisposable
             ArgumentNullException.ThrowIfNull(profileName);
             if (_profiles.TryRemove(profileName, out var profile))
             {
-                Logg.Information($"Profile '{profile.Name}' successfully removed.");
+                profile.OnProfileEventFired -= ProfileOnOnProfileEventFired;
+                profile.Dispose();
+                var result = RemoveProfileConfig(profileName).GetAwaiter().GetResult();
+                if (result)
+                {
+                    Logg.Information($"Profile '{profile.Name}'successfully removed.");
+                }
+                else
+                {
+                    Logg.Error($"Profile '{profile.Name}' config file could not be removed.");
+                }
             }
             else
             {
@@ -216,6 +226,32 @@ public class EventScheduler : IDisposable
         {
             Logg.Error($"RemoveProfile Error: {e.Message}");
         }
+    }
+
+    /// <summary>
+    /// Removes the configuration file associated with the specified profile.
+    /// Handles file deletion and logging for the operation.
+    /// </summary>
+    /// <param name="profileName">The name of the profile whose configuration file should be removed.</param>
+    /// <returns>Returns true if the profile configuration file was successfully deleted; otherwise, false.</returns>
+    private async Task<bool> RemoveProfileConfig(string profileName)
+    {
+        try
+        {
+            ArgumentNullException.ThrowIfNull(profileName);
+            var configFile = Path.Combine(ConfigFolder, $"{profileName}-Profile.json");
+            if (File.Exists(configFile))
+            {
+                var result = await FileOperation.FileDeleteAsync(configFile);
+                Logg.Information($"Profile '{profileName}' config file successfully removed.");
+                return result;
+            }
+        }
+        catch (Exception e)
+        {
+            Logg.Error($"RemoveProfileConfig Error: {e.Message}");
+        }
+        return false;
     }
 
     /// <summary>
