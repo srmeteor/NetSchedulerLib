@@ -106,11 +106,6 @@ public class EsEvent : IEsEvent, IDisposable
                 ? type
                 : EEventType.AbsoluteEvent;
             
-            // AstroOffset = !string.IsNullOrWhiteSpace(esEventCfg.AstroOffset) 
-            //     ? esEventCfg.AstroOffset 
-            //     : EventType == EEventType.AstronomicalEvent 
-            //         ? "Sunset:-10" // Default to sunset
-            //         : string.Empty;
             
             AstroOffset = EventType == EEventType.AstronomicalEvent
                 ? !string.IsNullOrWhiteSpace(esEventCfg.AstroOffset) 
@@ -131,6 +126,11 @@ public class EsEvent : IEsEvent, IDisposable
                 format = "MM/dd/yyyy HH:mm";
                 TargetTime = DateTime.ParseExact($"{esEventCfg.Date} {esEventCfg.Time}", format, CultureInfo.InvariantCulture);
             }
+            else
+            {
+                Logg.Error($"Target time is not set for event {Name}. Using current time as default.");
+                TargetTime = DateTime.Now.AddMinutes(5); // default to 5 minutes from now
+            }
             Time = TargetTime.ToString("HH:mm");
             Date = TargetTime.ToString("MM/dd/yyyy");
 
@@ -149,6 +149,14 @@ public class EsEvent : IEsEvent, IDisposable
             RecDescription = EventScheduler.GetRecurrenceDescription(TargetTime, Recurrence, Rate, AdditionalRate);
             
             _checkTimer = new Timer(CheckTime, null, Timeout.Infinite, Timeout.Infinite);
+
+            if (Recurrence == ERecurrence.NotSet && TargetTime < DateTime.Now)
+            {
+                Logg.Error(
+                    $"Event {Name} could not be created: TargetTime {TargetTime} is in the past and Recurrence is not set.");
+                    Dispose();
+                return;
+            }
             
             // Start the timer
             if (EventState == EEventState.Enabled)
