@@ -25,11 +25,11 @@ NetSchedulerLib is lite, Net8 based, Event Scheduler Library, created based on C
 Purpose of this Library is to replace Crestron Scheduler on Net8 based systems, but it can be used in other Net based systems
 
 ## Features
-- Create Profile(s) by providing EsProfile JSON config
-- Add Events to existing Profile(s) by providing EsEvent JSON config
-- Event recurrence is defined similar as in Crestron Library using EveryNthDay, EveryNthMonth and EveryNthYear. Additionally
-EveryNthMinute and EveryNthHour is also possible. There is EventRecurrenceRate property defining repeating rate replacing Nth and EventRecAdditionalRate is used for EveryNthWeek (defining weekdays) and EveryNthMonth (defining month dates).
-- After Event firing, Profile is automatically updated 3 seconds after last event is fired, optimizing file operations.
+- Recurrence: Every-minute, Every-hour, Every-day, Every-week, Every-month and Ever-year.
+- Additional Recurrence setting for Every-week (selected days in week) and Every-month (selected month days)
+- If Recurrence is set, no Exception will be thrown for DateTime in the past; first DateTime in the future, meeting Recurrence criteria will be used instead.
+- Every EsEvent has an Actions property with a dynamic callback.
+
 ## Prerequisites
 - NET8.0 with included nuget packages: SolarCalculator (for calculating Astronomical events times), Newtonsoft.Json (for configurations) and Serilog for logging
 
